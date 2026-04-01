@@ -782,6 +782,9 @@ function toggleInverseMode() {
   document.getElementById("tan-btn").textContent = inverseMode
     ? "tan⁻¹"
     : "tan";
+  document.getElementById("sinh-btn").textContent = inverseMode
+    ? "sinh⁻¹"
+    : "sinh";
 }
 
 function sinDeg(x) {
@@ -804,6 +807,14 @@ function atanDeg(x) {
   return (Math.atan(x) * 180) / Math.PI;
 }
 
+function sinh(x) {
+  return Math.sinh(x);
+}
+
+function asinh(x) {
+  return Math.asinh(x);
+}
+
 function appendTrig(func) {
   currentExpression += func + "(";
   updateResult();
@@ -811,8 +822,8 @@ function appendTrig(func) {
 
 function trigButtonPressed(func) {
   const map = inverseMode
-    ? { sin: "asin", cos: "acos", tan: "atan" }
-    : { sin: "sin", cos: "cos", tan: "tan" };
+    ? { sin: "asin", cos: "acos", tan: "atan", sinh: "asinh" }
+    : { sin: "sin", cos: "cos", tan: "tan", sinh: "sinh" };
 
   appendTrig(map[func]);
 }
@@ -825,16 +836,10 @@ function normalizeExpression(expr) {
     .replace(/sin\(/g, "sinDeg(")
     .replace(/cos\(/g, "cosDeg(")
     .replace(/tan\(/g, "tanDeg(")
+    .replace(/asinh\(/g, "asinh(")
+    .replace(/sinh\(/g, "sinh(")
     .replace(/\be\b/g, "Math.E")
     .replace(/\bpi\b/g, "Math.PI");
-}
-
-function isPrime(num) {
-  if (num <= 1) return false;
-  for (let i = 2; i <= Math.sqrt(num); i++) {
-    if (num % i === 0) return false;
-  }
-  return true;
 }
 
 function Parser(tokens) {
@@ -4806,6 +4811,9 @@ function displayBitwiseResult(operation, result) {
     document.getElementById("tan-btn").textContent = inverseMode
       ? "tan⁻¹"
       : "tan";
+    document.getElementById("sinh-btn").textContent = inverseMode
+      ? "sinh⁻¹"
+      : "sinh";
   }
 
   function sinDeg(x) {
@@ -4828,6 +4836,14 @@ function displayBitwiseResult(operation, result) {
     return (Math.atan(x) * 180) / Math.PI;
   }
 
+  function sinh(x) {
+    return Math.sinh(x);
+  }
+
+  function asinh(x) {
+    return Math.asinh(x);
+  }
+
   function appendTrig(func) {
     currentExpression += func + "(";
     updateResult();
@@ -4835,8 +4851,8 @@ function displayBitwiseResult(operation, result) {
 
   function trigButtonPressed(func) {
     const map = inverseMode
-      ? { sin: "asin", cos: "acos", tan: "atan" }
-      : { sin: "sin", cos: "cos", tan: "tan" };
+      ? { sin: "asin", cos: "acos", tan: "atan", sinh: "asinh" }
+      : { sin: "sin", cos: "cos", tan: "tan", sinh: "sinh" };
 
     appendTrig(map[func]);
   }
@@ -4848,7 +4864,9 @@ function displayBitwiseResult(operation, result) {
       .replace(/atan\(/g, "atanDeg(")
       .replace(/sin\(/g, "sinDeg(")
       .replace(/cos\(/g, "cosDeg(")
-      .replace(/tan\(/g, "tanDeg(");
+      .replace(/tan\(/g, "tanDeg(")
+      .replace(/asinh\(/g, "asinh(")
+      .replace(/sinh\(/g, "sinh(");
   }
 
   function isPrime(num) {
