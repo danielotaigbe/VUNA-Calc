@@ -714,13 +714,6 @@ function normalizeExpression(expr) {
     .replace(/\bpi\b/g, "Math.PI");
 }
 
-<<<<<<< HEAD
-function isPrime(num) {
-  if (num <= 1) return false;
-  for (let i = 2; i <= Math.sqrt(num); i++) {
-    if (num % i === 0) return false;
-  }
-=======
 function differentiateExpression() {
   const input = document.getElementById("diff-input");
   const output = document.getElementById("diff-output");
@@ -1266,18 +1259,18 @@ function getPrecedence(node) {
   return 5;
 }
 
+function isPrime(num) {
+  if (num <= 1) return false;
   if (num % 2 === 0) {
-    return false;
+    return num === 2;
   }
 
   const limit = Math.sqrt(num);
   for (let i = 3; i <= limit; i += 2) {
     if (num % i === 0) {
-      return false; 
+      return false;
     }
   }
-
->>>>>>> cb927d3d8cdfd62011db15cd7901039089e768d5
   return true;
 }
 
