@@ -840,20 +840,6 @@ function trigButtonPressed(func) {
   appendTrig(map[func]);
 }
 
-function normalizeExpression(expr) {
-  return expr
-    .replace(/asin\(/g, "asinDeg(")
-    .replace(/acos\(/g, "acosDeg(")
-    .replace(/atan\(/g, "atanDeg(")
-    .replace(/sin\(/g, "sinDeg(")
-    .replace(/cos\(/g, "cosDeg(")
-    .replace(/tan\(/g, "tanDeg(")
-    .replace(/asinh\(/g, "asinh(")
-    .replace(/sinh\(/g, "sinh(")
-    .replace(/\be\b/g, "Math.E")
-    .replace(/\bpi\b/g, "Math.PI");
-}
-
 function differentiateExpression() {
   const input = document.getElementById("diff-input");
   const output = document.getElementById("diff-output");
@@ -875,8 +861,8 @@ function differentiateExpression() {
       throw new Error("Unexpected token near the end of the expression.");
     }
     const derivative = simplify(differentiate(ast));
-    output.innerText = toString(derivative);
-    currentExpression = toString(derivative);
+    output.innerText = fracToString(derivative);
+    currentExpression = fracToString(derivative);
     updateResult();
   } catch (error) {
     output.innerText = error.message || "Invalid expression.";
@@ -976,127 +962,6 @@ function insertImplicitMultiplication(tokens) {
 
   return result;
 }
-
-function Parser(tokens) {
-  this.tokens = tokens;
-  this.index = 0;
-}
-
-Parser.prototype.peek = function () {
-  return this.tokens[this.index];
-};
-
-Parser.prototype.advance = function () {
-  this.index += 1;
-  return this.tokens[this.index - 1];
-};
-
-Parser.prototype.isAtEnd = function () {
-  return this.index >= this.tokens.length;
-};
-
-Parser.prototype.matchOperator = function (op) {
-  const token = this.peek();
-  if (token && token.type === "operator" && token.value === op) {
-    this.advance();
-    return true;
-  }
-  return false;
-};
-
-Parser.prototype.parseExpression = function () {
-  let node = this.parseTerm();
-  while (true) {
-    if (this.matchOperator("+")) {
-      node = { type: "binary", op: "+", left: node, right: this.parseTerm() };
-      continue;
-    }
-    if (this.matchOperator("-")) {
-      node = { type: "binary", op: "-", left: node, right: this.parseTerm() };
-      continue;
-    }
-    break;
-  }
-  return node;
-};
-
-Parser.prototype.parseTerm = function () {
-  let node = this.parsePower();
-  while (true) {
-    if (this.matchOperator("*")) {
-      node = { type: "binary", op: "*", left: node, right: this.parsePower() };
-      continue;
-    }
-    if (this.matchOperator("/")) {
-      node = { type: "binary", op: "/", left: node, right: this.parsePower() };
-      continue;
-    }
-    break;
-  }
-  return node;
-};
-
-Parser.prototype.parsePower = function () {
-  let node = this.parseUnary();
-  if (this.matchOperator("^")) {
-    node = { type: "binary", op: "^", left: node, right: this.parsePower() };
-  }
-  return node;
-};
-
-Parser.prototype.parseUnary = function () {
-  if (this.matchOperator("-")) {
-    return { type: "unary", op: "-", value: this.parseUnary() };
-  }
-  return this.parsePrimary();
-};
-
-Parser.prototype.parsePrimary = function () {
-  const token = this.peek();
-  if (!token) throw new Error("Unexpected end of expression.");
-
-  if (token.type === "number") {
-    this.advance();
-    return { type: "number", value: token.value };
-  }
-
-  if (token.type === "variable") {
-    this.advance();
-    return { type: "variable", name: token.name };
-  }
-
-  if (token.type === "constant") {
-    this.advance();
-    return { type: "constant", name: token.name, value: token.value };
-  }
-
-  if (token.type === "func") {
-    const funcToken = this.advance();
-    const next = this.peek();
-    if (!next || next.type !== "lparen") {
-      throw new Error(`Expected '(' after ${funcToken.name}.`);
-    }
-    this.advance();
-    const arg = this.parseExpression();
-    if (!this.peek() || this.peek().type !== "rparen") {
-      throw new Error("Missing closing parenthesis for function.");
-    }
-    this.advance();
-    return { type: "func", name: funcToken.name, arg };
-  }
-
-  if (token.type === "lparen") {
-    this.advance();
-    const node = this.parseExpression();
-    if (!this.peek() || this.peek().type !== "rparen") {
-      throw new Error("Missing closing parenthesis.");
-    }
-    this.advance();
-    return node;
-  }
-
-  throw new Error("Invalid token in expression.");
-};
 
 function differentiate(node) {
   switch (node.type) {
@@ -1291,112 +1156,6 @@ function simplify(node) {
   }
 
   return node;
-}
-
-function evaluateBinary(op, left, right) {
-  switch (op) {
-    case "+":
-      return left + right;
-    case "-":
-      return left - right;
-    case "*":
-      return left * right;
-    case "/":
-      return left / right;
-    case "^":
-      return Math.pow(left, right);
-    default:
-      return NaN;
-  }
-}
-
-function isZero(node) {
-  return node.type === "number" && Math.abs(node.value) < 1e-12;
-}
-
-function isOne(node) {
-  return node.type === "number" && Math.abs(node.value - 1) < 1e-12;
-}
-
-function toString(node, parentPrecedence) {
-  const precedence = getPrecedence(node);
-  const needsParens = parentPrecedence && precedence < parentPrecedence;
-
-  let result;
-  switch (node.type) {
-    case "number":
-      result = formatNumber(node.value);
-      break;
-    case "variable":
-      result = node.name;
-      break;
-    case "constant":
-      result = node.name;
-      break;
-    case "unary":
-      result = "-" + toString(node.value, precedence);
-      break;
-    case "func":
-      result = `${node.name}(${toString(node.arg, 0)})`;
-      break;
-    case "binary":
-      result = formatBinary(node, precedence);
-      break;
-    default:
-      result = "";
-  }
-
-  return needsParens ? `(${result})` : result;
-}
-
-function formatBinary(node, precedence) {
-  if (node.op === "*") {
-    const left = toString(node.left, precedence);
-    const right = toString(node.right, precedence);
-    if (shouldOmitMultiply(node.left, node.right)) {
-      return `${left}${right}`;
-    }
-    return `${left} * ${right}`;
-  }
-
-  const left = toString(node.left, precedence);
-  const right = toString(node.right, precedence + (node.op === "^" ? 1 : 0));
-  return `${left} ${node.op} ${right}`;
-}
-
-function shouldOmitMultiply(left, right) {
-  if (left.type !== "number") return false;
-  if (right.type === "variable" || right.type === "func") return true;
-  if (right.type === "binary" && right.op === "^" && right.left.type === "variable") return true;
-  return false;
-}
-
-function formatNumber(value) {
-  if (!isFinite(value)) return "Error";
-  if (Math.abs(value - Math.round(value)) < 1e-10) {
-    return `${Math.round(value)}`;
-  }
-  return `${parseFloat(value.toFixed(6))}`;
-}
-
-function getPrecedence(node) {
-  if (!node) return 0;
-  if (node.type === "binary") {
-    switch (node.op) {
-      case "+":
-      case "-":
-        return 1;
-      case "*":
-      case "/":
-        return 2;
-      case "^":
-        return 3;
-      default:
-        return 0;
-    }
-  }
-  if (node.type === "unary") return 4;
-  return 5;
 }
 
 function isPrime(num) {
@@ -1600,7 +1359,7 @@ function isOne(node) {
   return node.type === "number" && Math.abs(node.value - 1) < 1e-12;
 }
 
-function toString(node, parentPrecedence) {
+function fracToString(node, parentPrecedence) {
   const precedence = getPrecedence(node);
   const needsParens = parentPrecedence && precedence < parentPrecedence;
 
@@ -1616,10 +1375,10 @@ function toString(node, parentPrecedence) {
       result = node.name;
       break;
     case "unary":
-      result = "-" + toString(node.value, precedence);
+      result = "-" + fracToString(node.value, precedence);
       break;
     case "func":
-      result = `${node.name}(${toString(node.arg, 0)})`;
+      result = `${node.name}(${fracToString(node.arg, 0)})`;
       break;
     case "binary":
       result = formatBinary(node, precedence);
@@ -1633,16 +1392,16 @@ function toString(node, parentPrecedence) {
 
 function formatBinary(node, precedence) {
   if (node.op === "*") {
-    const left = toString(node.left, precedence);
-    const right = toString(node.right, precedence);
+    const left = fracToString(node.left, precedence);
+    const right = fracToString(node.right, precedence);
     if (shouldOmitMultiply(node.left, node.right)) {
       return `${left}${right}`;
     }
     return `${left} * ${right}`;
   }
 
-  const left = toString(node.left, precedence);
-  const right = toString(node.right, precedence + (node.op === "^" ? 1 : 0));
+  const left = fracToString(node.left, precedence);
+  const right = fracToString(node.right, precedence + (node.op === "^" ? 1 : 0));
   return `${left} ${node.op} ${right}`;
 }
 
@@ -2812,58 +2571,6 @@ function calculateMatrix() {
     if (wordArea) wordArea.style.display = "flex";
     enableSpeakButton();
   }
-}
-
-function redoCalculation() {
-  var calcHistory = localStorage.getItem("calcHistory");
-  if (!calcHistory) return;
-  var History;
-  try {
-    History = JSON.parse(calcHistory);
-  } catch (e) {
-    return;
-  }
-  if (!History || History.length === 0) return;
-  // Cap at last 5 entries; cycle through on repeated presses
-  var maxSteps = Math.min(5, History.length);
-  redoIndex = (redoIndex + 1) % maxSteps;
-  var entry = History[History.length - 1 - redoIndex];
-  if (!entry) return;
-  var displayExpr = entry.expression || "";
-  var displayAnswer =
-    entry.answer !== undefined && entry.answer !== null ? entry.answer : "";
-  // Show full expression = answer (preserves sin/cos/tan/sqrt/! etc.)
-  var resultDisplay = document.getElementById("result");
-  if (resultDisplay) {
-    resultDisplay.value =
-      displayAnswer !== "" ? displayExpr + " = " + displayAnswer : displayExpr;
-  }
-  // Update the English word display area
-  if (entry.words) {
-    var wordResult = document.getElementById("word-result");
-    var wordArea = document.getElementById("word-area");
-    if (wordResult) wordResult.innerHTML = entry.words;
-    if (wordArea) wordArea.style.display = "flex";
-  }
-  // Update button label with current step indicator
-  var redoBtn = document.getElementById("redoBtn");
-}
-
-// Reset redo pointer when a new calculation is made
-function resetRedoIndex() {
-  redoIndex = -1;
-  var redoBtn = document.getElementById("redoBtn");
-  if (redoBtn) redoBtn.value = "↻ REDO";
-}
-
-function enableRedo() {
-  const redoBtn = document.getElementById("redoBtn");
-  if (redoBtn) redoBtn.disabled = false;
-}
-
-function disableRedo() {
-  const redoBtn = document.getElementById("redoBtn");
-  if (redoBtn) redoBtn.disabled = true;
 }
 
 // ============================================
@@ -5466,7 +5173,7 @@ function displayBitwiseResult(operation, result) {
     return node.type === "number" && Math.abs(node.value - 1) < 1e-12;
   }
 
-  function toString(node, parentPrecedence) {
+function fracToString(node, parentPrecedence) {
     const precedence = getPrecedence(node);
     const needsParens = parentPrecedence && precedence < parentPrecedence;
 
@@ -6688,60 +6395,6 @@ function displayBitwiseResult(operation, result) {
       if (wordArea) wordArea.style.display = "flex";
       enableSpeakButton();
     }
-  }
-
-  function redoCalculation() {
-    var calcHistory = localStorage.getItem("calcHistory");
-    if (!calcHistory) return;
-    var History;
-    try {
-      History = JSON.parse(calcHistory);
-    } catch (e) {
-      return;
-    }
-    if (!History || History.length === 0) return;
-    // Cap at last 5 entries; cycle through on repeated presses
-    var maxSteps = Math.min(5, History.length);
-    redoIndex = (redoIndex + 1) % maxSteps;
-    var entry = History[History.length - 1 - redoIndex];
-    if (!entry) return;
-    var displayExpr = entry.expression || "";
-    var displayAnswer =
-      entry.answer !== undefined && entry.answer !== null ? entry.answer : "";
-    // Show full expression = answer (preserves sin/cos/tan/sqrt/! etc.)
-    var resultDisplay = document.getElementById("result");
-    if (resultDisplay) {
-      resultDisplay.value =
-        displayAnswer !== ""
-          ? displayExpr + " = " + displayAnswer
-          : displayExpr;
-    }
-    // Update the English word display area
-    if (entry.words) {
-      var wordResult = document.getElementById("word-result");
-      var wordArea = document.getElementById("word-area");
-      if (wordResult) wordResult.innerHTML = entry.words;
-      if (wordArea) wordArea.style.display = "flex";
-    }
-    // Update button label with current step indicator
-    var redoBtn = document.getElementById("redoBtn");
-  }
-
-  // Reset redo pointer when a new calculation is made
-  function resetRedoIndex() {
-    redoIndex = -1;
-    var redoBtn = document.getElementById("redoBtn");
-    if (redoBtn) redoBtn.value = "↻ REDO";
-  }
-
-  function enableRedo() {
-    const redoBtn = document.getElementById("redoBtn");
-    if (redoBtn) redoBtn.disabled = false;
-  }
-
-  function disableRedo() {
-    const redoBtn = document.getElementById("redoBtn");
-    if (redoBtn) redoBtn.disabled = true;
   }
 
   // ============================================
