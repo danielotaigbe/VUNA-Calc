@@ -1,0 +1,25 @@
+{
+  "name": "vuna-calc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VUNA Calculator - A scientific calculator with unit conversion, age calculation, and more",
+  "scripts": {
+    "lint": "eslint assets/js/",
+    "lint:fix": "eslint assets/js/ --fix",
+    "serve": "npx serve .",
+    "format": "eslint assets/js/ --fix",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFiles": ["./test/setup.js"],
+    "testMatch": ["**/test/**/*.test.js"]
+  },
+  "devDependencies": {
+    "eslint": "^10.5.0",
+    "globals": "^17.6.0",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
+  }
+}
